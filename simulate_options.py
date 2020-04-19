@@ -30,10 +30,12 @@ class European_Option(object):
         self.K_p = K_p
         self.mu_p = mu_p
 
-    def d_values(self, S0, K, r, T, sigma):
+    def d_values(self, K):
         """Compute the values of d1 and d2."""
-        d1 = (np.log(S0 / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
-        d2 = d1 - sigma * np.sqrt(T)
+        d1 = (np.log(self.S0 / K) + (self.r + 0.5 * self.sigma ** 2) * self.T) / (
+            self.sigma * np.sqrt(self.T)
+        )
+        d2 = d1 - self.sigma * np.sqrt(self.T)
         return d1, d2
 
     def phi(self, d):
@@ -44,30 +46,44 @@ class European_Option(object):
         """Compute the value of mu_c with the Theorem 3.1."""
         return self.mu_p * (1 - self.phi(d_p)) / self.phi(d_c)
 
-    def call_value(self, S0, K, r, T, sigma):
+    def call_value(self, K):
         """Compute call value."""
-        d1, d2 = self.d_values(self, S0, K, r, T, sigma)
+        d1, d2 = self.d_values(K)
         return S0 * self.phi(d1) - K * np.exp(-r * T) * self.phi(d2)
 
-    def put_value(self, S0, K, r, T, sigma):
+    def put_value(self, K):
         """Compute put value."""
-        return self.call_value(S0, K, r, T, sigma) - S0 + K * np.exp(-r * T)
+        return self.call_value(K) - S0 + K * np.exp(-r * T)
 
     def initial_value(self):
         """Compute the initial value X0."""
-        d_p, _ = d_values(self, self.S0, self.K_p, self.r, self.T, self.sigma)
-        d_c, _ = d_values(self, self.S0, self.K_c, self.r, self.T, self.sigma)
-        mu_c = mu_c(self, d_p, d_c)
-        return self.mu_p * put_value(
-            self.S0, self.K_p, self.r, self.T, self.sigma
-        ) + mu_c * call_value(self.S0, self.K_c, self.r, self.T, self.sigma)
+        d_p, _ = self.d_values(self.K_p)
+        d_c, _ = self.d_values(self.K_c)
+        return self.mu_p * self.put_value(self.K_p) + self.mu_c(
+            d_p, d_c
+        ) * self.call_value(self.K_c)
 
     def final_value(self, a):
         """Compute the final value."""
+        t_sqrt = np.sqrt(1 / self.T)
+        Z = np.random.randn(t_sqrt)  # Hypothesis : one point/day
+        Z[0] = 0
+        W = np.cumsum(t_sqrt * Z)
         S_T = self.S0 * np.exp(
-            a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W_T
-        )  # CALCULER W_T
-        return self.mu_p * max(0, self.K_p - S_T) + self.mu_c * max(0, S_T - self.K_c)
+            a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W[-1]
+        )
+        d_p = self.d_values(self.K_p)[0]
+        d_c = self.d_values(self.K_c)[0]
+        return self.mu_p * max(0, self.K_p - S_T) + self.mu_c(d_p, d_c) * max(
+            0, S_T - self.K_c
+        )
+
+    def average_gain(self, a):
+        risk_gain = 0
+        for i in range(1000):  # Approximation of the expectation
+            risk_gain += self.final_value(a)
+        risk_gain /= 1000
+        return risk_gain - np.exp(self.r * self.T) * self.initial_value()
 
 
 ################################################################################
@@ -80,8 +96,11 @@ sigma = 0.45  # Volatility in market
 
 
 option = European_Option(S0, T, r, sigma, K_p, K_c)
-d_p = option.d_values(S0, K_p, r, T, sigma)[0]
-d_c = option.d_values(S0, K_c, r, T, sigma)[0]
+d_p = option.d_values(K_p)[0]
+d_c = option.d_values(K_c)[0]
+
+################################################################################
+
 print(
     "The values of d_p and d_c are:",
     round(d_p, 3),
@@ -114,8 +133,11 @@ sigma = 0.45  # Volatility in market
 
 
 option = European_Option(S0, T, r, sigma, K_p, K_c)
-d_p = option.d_values(S0, K_p, r, T, sigma)[0]
-d_c = option.d_values(S0, K_c, r, T, sigma)[0]
+d_p = option.d_values(K_p)[0]
+d_c = option.d_values(K_c)[0]
+
+################################################################################
+
 print(
     "The values of d_p and d_c are:",
     round(d_p, 3),
@@ -137,3 +159,18 @@ print(
     round(433 / 567, 3),
     "\n",
 )
+
+################################################################################
+
+S0 = 30  # Initial stock price
+K_c, K_p = 30, 30  # Strike price
+T = 1  # Time in years
+r = 0.05  # Risk-free interest rate
+sigma = 0.05  # Volatility in market
+
+
+option = European_Option(S0, T, r, sigma, K_p, K_c)
+
+################################################################################
+
+print(option.average_gain(0.05))
