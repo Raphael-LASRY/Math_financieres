@@ -1,5 +1,7 @@
 import numpy as np
-from scipy.stats import *
+from scipy.stats import norm as norme
+import matplotlib.pyplot as plt
+from pylab import MultipleLocator
 
 ################################################################################
 
@@ -40,7 +42,7 @@ class European_Option(object):
 
     def phi(self, d):
         """Compute the value of phi."""
-        return norm.cdf(d, 0.0, 1.0)
+        return norme.cdf(d, 0.0, 1.0)
 
     def mu_c(self, d_p, d_c):
         """Compute the value of mu_c with the Theorem 3.1."""
@@ -67,7 +69,7 @@ class European_Option(object):
         """Compute the final value."""
         Z = np.random.randn(100)
         Z[0] = 0
-        W = np.sqrt(T/100) * np.cumsum(Z)
+        W = np.sqrt(T / 100) * np.cumsum(Z)
         S_T = self.S0 * np.exp(
             a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W[-1]
         )
@@ -164,15 +166,56 @@ print(
 S0 = 30  # Initial stock price
 K_c, K_p = 30, 30  # Strike price
 T = 1  # Time in years
-r = 0.05  # Risk-free interest rate
+r = 0.03  # Risk-free interest rate
 sigma = 0.05  # Volatility in market
 
 
 option = European_Option(S0, T, r, sigma, K_p, K_c)
 
-################################################################################
+fig = plt.figure()
 
-A = np.arange(r-0.1, r+0.1, r/5)
+axes = fig.add_subplot(211)
+A = np.linspace(r - 0.1, r + 0.1, 100)
+E = []
 for a in A:
-    print(a)
-    print(option.average_gain(a))
+    E.append(option.average_gain(a))
+
+axes = plt.gca()
+axes.plot(A, E)
+axes.set_xlim(r - 0.15, r + 0.15)
+axes.set_title("r = 0.03")
+
+axes.xaxis.set_major_locator(MultipleLocator(1.0))
+axes.xaxis.set_minor_locator(MultipleLocator(0.01))
+axes.yaxis.set_major_locator(MultipleLocator(1.0))
+axes.yaxis.set_minor_locator(MultipleLocator(0.1))
+axes.grid(which="major", axis="x", linewidth=0.75, linestyle="-", color="0.75")
+axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
+axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
+axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
+
+r = -0.05  # Risk-free interest rate
+
+option = European_Option(S0, T, r, sigma, K_p, K_c)
+
+axes = fig.add_subplot(212)
+A = np.linspace(r - 0.1, r + 0.1, 100)
+E = []
+for a in A:
+    E.append(option.average_gain(a))
+
+axes = plt.gca()
+axes.plot(A, E)
+axes.set_xlim(r - 0.15, r + 0.15)
+axes.set_title("r = - 0.05")
+
+axes.xaxis.set_major_locator(MultipleLocator(1.0))
+axes.xaxis.set_minor_locator(MultipleLocator(0.01))
+axes.yaxis.set_major_locator(MultipleLocator(1.0))
+axes.yaxis.set_minor_locator(MultipleLocator(0.1))
+axes.grid(which="major", axis="x", linewidth=0.75, linestyle="-", color="0.75")
+axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
+axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
+axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
+
+################################################################################
