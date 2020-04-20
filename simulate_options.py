@@ -65,10 +65,9 @@ class European_Option(object):
 
     def final_value(self, a):
         """Compute the final value."""
-        t_sqrt = np.sqrt(1 / self.T)
-        Z = np.random.randn(t_sqrt)  # Hypothesis : one point/day
+        Z = np.random.randn(100)
         Z[0] = 0
-        W = np.cumsum(t_sqrt * Z)
+        W = np.sqrt(T/100) * np.cumsum(Z)
         S_T = self.S0 * np.exp(
             a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W[-1]
         )
@@ -173,4 +172,7 @@ option = European_Option(S0, T, r, sigma, K_p, K_c)
 
 ################################################################################
 
-print(option.average_gain(0.05))
+A = np.arange(r-0.1, r+0.1, r/5)
+for a in A:
+    print(a)
+    print(option.average_gain(a))
