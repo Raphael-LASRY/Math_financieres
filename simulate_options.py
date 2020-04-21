@@ -1,3 +1,10 @@
+"""
+METEF ENPC course project: A paradox of diffusion market model related with existence of winning combinations of options
+@authors: Florentin POUCIN & Raphaël LASRY
+"""
+
+################################################################################
+
 import numpy as np
 from scipy.stats import norm as norme
 import matplotlib.pyplot as plt
@@ -6,12 +13,12 @@ from pylab import MultipleLocator
 ################################################################################
 
 
-class European_Option(object):
+class EuropeanOption(object):
     """Compute European option value.
 
     Parameters
     ==========
-    S0 : Initial stock price
+    S_0 : Initial stock price
     T : Expiration time (fraction of a year or a century)
     r : Risk free interest rate
     sigma : Volatility
@@ -21,10 +28,10 @@ class European_Option(object):
     kind : Type of option ({'call', 'put'}, default 'call')
     """
 
-    def __init__(self, S0, T, r, sigma, K_c, K_p, kind="call", mu_p=1):
+    def __init__(self, S_0, T, r, sigma, K_c, K_p, kind="call", mu_p=1):
 
         self.kind = kind
-        self.S0 = S0
+        self.S_0 = S_0
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -34,7 +41,7 @@ class European_Option(object):
 
     def d_values(self, K):
         """Compute the values of d1 and d2."""
-        d1 = (np.log(self.S0 / K) + (self.r + 0.5 * self.sigma ** 2) * self.T) / (
+        d1 = (np.log(self.S_0 / K) + (self.r + 0.5 * self.sigma ** 2) * self.T) / (
             self.sigma * np.sqrt(self.T)
         )
         d2 = d1 - self.sigma * np.sqrt(self.T)
@@ -51,11 +58,11 @@ class European_Option(object):
     def call_value(self, K):
         """Compute call value."""
         d1, d2 = self.d_values(K)
-        return S0 * self.phi(d1) - K * np.exp(-r * T) * self.phi(d2)
+        return S_0 * self.phi(d1) - K * np.exp(-r * T) * self.phi(d2)
 
     def put_value(self, K):
         """Compute put value."""
-        return self.call_value(K) - S0 + K * np.exp(-r * T)
+        return self.call_value(K) - S_0 + K * np.exp(-r * T)
 
     def initial_value(self):
         """Compute the initial value X0."""
@@ -70,7 +77,7 @@ class European_Option(object):
         Z = np.random.randn(100)
         Z[0] = 0
         W = np.sqrt(T / 100) * np.cumsum(Z)
-        S_T = self.S0 * np.exp(
+        S_T = self.S_0 * np.exp(
             a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W[-1]
         )
         d_p = self.d_values(self.K_p)[0]
@@ -80,6 +87,7 @@ class European_Option(object):
         )
 
     def average_gain(self, a):
+        """Compute the average gain: E(X_T) - exp(rX_0)."""
         risk_gain = 0
         for i in range(1000):  # Approximation of the expectation
             risk_gain += self.final_value(a)
@@ -89,14 +97,14 @@ class European_Option(object):
 
 ################################################################################
 
-S0 = 30  # Initial stock price
+S_0 = 30  # Initial stock price
 K_c, K_p = 25, 25  # Strike price
 T = 0.25  # Time in years
 r = 0.05  # Risk-free interest rate
 sigma = 0.45  # Volatility in market
 
 
-option = European_Option(S0, T, r, sigma, K_p, K_c)
+option = EuropeanOption(S_0, T, r, sigma, K_p, K_c)
 d_p = option.d_values(K_p)[0]
 d_c = option.d_values(K_c)[0]
 
@@ -126,14 +134,14 @@ print(
 
 ################################################################################
 
-S0 = 30  # Initial stock price
+S_0 = 30  # Initial stock price
 K_c, K_p = 30, 30  # Strike price
 T = 0.25  # Time in years
 r = 0.05  # Risk-free interest rate
 sigma = 0.45  # Volatility in market
 
 
-option = European_Option(S0, T, r, sigma, K_p, K_c)
+option = EuropeanOption(S_0, T, r, sigma, K_p, K_c)
 d_p = option.d_values(K_p)[0]
 d_c = option.d_values(K_c)[0]
 
@@ -163,59 +171,44 @@ print(
 
 ################################################################################
 
-S0 = 30  # Initial stock price
+S_0 = 30  # Initial stock price
 K_c, K_p = 30, 30  # Strike price
 T = 1  # Time in years
 r = 0.03  # Risk-free interest rate
 sigma = 0.05  # Volatility in market
 
 
-option = European_Option(S0, T, r, sigma, K_p, K_c)
+
 
 fig = plt.figure()
 
-axes = fig.add_subplot(211)
-A = np.linspace(r - 0.1, r + 0.1, 100)
-E = []
-for a in A:
-    E.append(option.average_gain(a))
+def graph(r, position):
+    """Plot the average gain for different values of a.
+    It should be a strict convex where the global minimum is at a = r,
+    And the average gain should be non positive."""
 
-axes = plt.gca()
-axes.plot(A, E)
-axes.set_xlim(r - 0.15, r + 0.15)
-axes.set_title("r = 0.03")
+    option = EuropeanOption(S_0, T, r, sigma, K_p, K_c)
+    axes = fig.add_subplot(position)
+    A = np.linspace(r - 0.1, r + 0.1, 100)
+    E = []
+    for a in A:
+        E.append(option.average_gain(a))
+    
+    axes = plt.gca()
+    axes.plot(A, E)
+    axes.set_xlim(r - 0.15, r + 0.15)
+    axes.set_title("r = " + str(r))
+    
+    axes.xaxis.set_major_locator(MultipleLocator(1.0))
+    axes.xaxis.set_minor_locator(MultipleLocator(0.01))
+    axes.yaxis.set_major_locator(MultipleLocator(1.0))
+    axes.yaxis.set_minor_locator(MultipleLocator(0.1))
+    axes.grid(which="major", axis="x", linewidth=0.75, linestyle="-", color="0.75")
+    axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
+    axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
+    axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
 
-axes.xaxis.set_major_locator(MultipleLocator(1.0))
-axes.xaxis.set_minor_locator(MultipleLocator(0.01))
-axes.yaxis.set_major_locator(MultipleLocator(1.0))
-axes.yaxis.set_minor_locator(MultipleLocator(0.1))
-axes.grid(which="major", axis="x", linewidth=0.75, linestyle="-", color="0.75")
-axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
-axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
-axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
-
-r = -0.05  # Risk-free interest rate
-
-option = European_Option(S0, T, r, sigma, K_p, K_c)
-
-axes = fig.add_subplot(212)
-A = np.linspace(r - 0.1, r + 0.1, 100)
-E = []
-for a in A:
-    E.append(option.average_gain(a))
-
-axes = plt.gca()
-axes.plot(A, E)
-axes.set_xlim(r - 0.15, r + 0.15)
-axes.set_title("r = - 0.05")
-
-axes.xaxis.set_major_locator(MultipleLocator(1.0))
-axes.xaxis.set_minor_locator(MultipleLocator(0.01))
-axes.yaxis.set_major_locator(MultipleLocator(1.0))
-axes.yaxis.set_minor_locator(MultipleLocator(0.1))
-axes.grid(which="major", axis="x", linewidth=0.75, linestyle="-", color="0.75")
-axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
-axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
-axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
+graph(0.03, 211)
+graph(-0.05, 212)
 
 ################################################################################
