@@ -29,7 +29,7 @@ class EuropeanOption(object):
     """
 
     def __init__(self, S_0, T, r, sigma, K_c, K_p, kind="call", mu_p=1):
-
+        """Initialise the parameters."""
         self.kind = kind
         self.S_0 = S_0
         self.T = T
@@ -74,11 +74,9 @@ class EuropeanOption(object):
 
     def final_value(self, a):
         """Compute the final value."""
-        Z = np.random.randn(100)
-        Z[0] = 0
-        W = np.sqrt(T / 100) * np.cumsum(Z)
+        W = np.sqrt(T) * np.random.randn()
         S_T = self.S_0 * np.exp(
-            a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W[-1]
+            a * self.T - 0.5 * self.T * self.sigma ** 2 + self.sigma * W
         )
         d_p = self.d_values(self.K_p)[0]
         d_c = self.d_values(self.K_c)[0]
@@ -86,13 +84,17 @@ class EuropeanOption(object):
             0, S_T - self.K_c
         )
 
-    def average_gain(self, a):
+    def average_gain(self, a, nb_iter = 1000):
         """Compute the average gain: E(X_T) - exp(rX_0)."""
         risk_gain = 0
-        for i in range(1000):  # Approximation of the expectation
-            risk_gain += self.final_value(a)
-        risk_gain /= 1000
-        return risk_gain - np.exp(self.r * self.T) * self.initial_value()
+        risk_gain_2 = 0
+        for i in range(nb_iter):  # Approximation of the expectation and standard deviation
+            final_value = self.final_value(a)
+            risk_gain += final_value
+            risk_gain_2 += final_value ** 2
+        risk_gain /= nb_iter
+        var = risk_gain_2 / nb_iter - risk_gain ** 2
+        return risk_gain - np.exp(self.r * self.T) * self.initial_value(), var
 
 
 ################################################################################
@@ -174,10 +176,7 @@ print(
 S_0 = 30  # Initial stock price
 K_c, K_p = 30, 30  # Strike price
 T = 1  # Time in years
-r = 0.03  # Risk-free interest rate
 sigma = 0.05  # Volatility in market
-
-
 
 
 fig = plt.figure()
@@ -189,13 +188,21 @@ def graph(r, position):
 
     option = EuropeanOption(S_0, T, r, sigma, K_p, K_c)
     axes = fig.add_subplot(position)
-    A = np.linspace(r - 0.1, r + 0.1, 100)
+    A = np.linspace(r - 0.1, r + 0.1, 15)
     E = []
+    V_minus = []
+    V_positive = []
     for a in A:
-        E.append(option.average_gain(a))
+        val = option.average_gain(a)
+        E.append(val[0])
+        V_minus.append(val[0] - 1.96 / np.sqrt(1000) * val[1])
+        V_positive.append(val[0] + 1.96 / np.sqrt(1000) * val[1])
     
+    print("The min is reached for a =", A[np.argmin(E)], "and r =", r)
     axes = plt.gca()
     axes.plot(A, E)
+    axes.plot(A, V_minus, 'k--')
+    axes.plot(A, V_positive, 'k--')
     axes.set_xlim(r - 0.15, r + 0.15)
     axes.set_title("r = " + str(r))
     
@@ -207,8 +214,52 @@ def graph(r, position):
     axes.grid(which="minor", axis="x", linewidth=0.25, linestyle="-", color="0.75")
     axes.grid(which="major", axis="y", linewidth=0.75, linestyle="-", color="0.75")
     axes.grid(which="minor", axis="y", linewidth=0.25, linestyle="-", color="0.75")
+    axes.margins(0, 0.5)
 
 graph(0.03, 211)
 graph(-0.05, 212)
 
 ################################################################################
+"""
+Variation of K_c and K_p.
+"""
+
+S_0 = 30  # Initial stock price
+K_c, K_p = 35, 25  # Strike price
+T = 1  # Time in years
+sigma = 0.05  # Volatility in market
+
+
+fig = plt.figure()
+graph(0.03, 211)
+graph(-0.05, 212)
+
+################################################################################
+"""
+Variation of T.
+"""
+
+S_0 = 30  # Initial stock price
+K_c, K_p = 30, 30  # Strike price
+T = 0.75  # Time in years
+sigma = 0.05  # Volatility in market
+
+
+fig = plt.figure()
+graph(0.03, 211)
+graph(-0.05, 212)
+
+################################################################################
+"""
+Variation of sigma.
+"""
+
+S_0 = 30  # Initial stock price
+K_c, K_p = 30, 30  # Strike price
+T = 1  # Time in years
+sigma = 0.2  # Volatility in market
+
+
+fig = plt.figure()
+graph(0.03, 211)
+graph(-0.05, 212)
